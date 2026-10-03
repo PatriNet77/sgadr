@@ -154,7 +154,7 @@ def _version(body: dict[str, Any]) -> int:
 
 def _enum(kind: type[E], field: str, value: object) -> E:
     try:
-        return kind(value)
+        return kind(value if isinstance(value, str) else "")
     except ValueError:
         valid = ", ".join(m.value for m in kind)
         raise ValidationError(f"'{field}' inválido. Valores admitidos: {valid}.") from None

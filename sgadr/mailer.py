@@ -93,7 +93,9 @@ class SmtpConfig:
 
 def build_message(config: SmtpConfig, alert: Mapping[str, Any]) -> EmailMessage:
     """Arma el correo de un reporte vencido (función pura, sin red)."""
-    clean = lambda v: _CONTROL.sub(" ", str(v)).strip()  # noqa: E731 - evita inyección de cabeceras
+    def clean(value: object) -> str:
+        return _CONTROL.sub(" ", str(value)).strip()  # evita inyección de cabeceras
+
     code, muni, level = clean(alert["code"]), clean(alert["municipality"]), clean(alert["level"])
     minutes = int(alert.get("overdue_minutes", 0))
     hours, rest = divmod(minutes, 60)

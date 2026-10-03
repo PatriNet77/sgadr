@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 import unittest
+from typing import Any
 
 from sgadr.domain import (
     Actor, AlertLevel, ConcurrencyConflict, DemandState as S, InvalidTransition,
@@ -33,7 +34,7 @@ class ServiceTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.store.close()
 
-    def _advance(self, actor: Actor, did: int, target: S, **kw: object) -> dict:
+    def _advance(self, actor: Actor, did: int, target: S, **kw: object) -> dict[str, Any]:
         version = self.store.read("SELECT version FROM demands WHERE id=?", (did,))[0]["version"]
         return self.svc.transition(actor, did, target, expected_version=version, **kw)  # type: ignore[arg-type]
 

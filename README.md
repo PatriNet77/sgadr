@@ -1,174 +1,37 @@
-# SGADR
+# SGADR: Sistema de Gestión de Alertas, Demandas y Respuestas
 
-Sistema de Gestión de Alertas, Demandas y Respuestas.
+Python 3.13+, solo biblioteca estándar. Base SQLite, servidor WSGI propio, interfaz web sin dependencias externas (funciona sin internet).
 
-## Descripción
+## Puesta en marcha
 
-SGADR es una aplicación web desarrollada en Python para gestionar alertas, demandas y respuestas dentro de un contexto operativo. El sistema usa SQLite como base de datos local, un servidor WSGI propio y una interfaz web sin dependencias externas.
-
-Está diseñado para operar en entornos controlados, con baja complejidad de despliegue y sin requerir internet para el funcionamiento básico del sistema.
-
-## Objetivo
-
-Centralizar la gestión operativa de alertas y demandas, mantener trazabilidad de las acciones, apoyar la auditoría y permitir la separación funcional entre roles administrativos y operativos.
-
-## Requisitos
-
-- Python 3.13 o superior
-- Sistema operativo compatible con Python
-- Acceso al directorio del proyecto
-- SQLite disponible por medio de la biblioteca estándar de Python
-
-## Estructura del proyecto
-
-```text
-sgadr/
-    __init__.py
-    __main__.py
-    alerts.py
-    api.py
-    app.py
-    auth.py
-    catalog.py
-    domain.py
-    mailer.py
-    reminders.py
-    security.py
-    server.py
-    service.py
-    static.py
-    store.py
-    web/
-        index.html
-        css/
-        js/
-
-tests/
-    __init__.py
-    support.py
-    test_accounts.py
-    test_alerts.py
-    test_api.py
-    test_mailer.py
-    test_service.py
-    test_web.py
+```
+python -m sgadr --db /var/lib/sgadr/sgadr.db create-user admin --role admin     # primer administrador
+python -m sgadr --db /var/lib/sgadr/sgadr.db serve --host 0.0.0.0 --port 8443 --cert cert.pem --key key.pem
 ```
 
-## Primer arranque
+El resto de las cuentas se crean desde la consola web (rol `admin`, sección Usuarios): alta con contraseña temporal que la persona debe cambiar al ingresar, baja, reactivación y restablecimiento. El administrador no ve alertas, demandas ni bitácora (separación de funciones); sus acciones quedan en la bitácora encadenada, visible para Comité y Monitoreo.
 
-Desde la raíz del proyecto:
+## Aviso por correo de reportes vencidos
 
-```bash
-python -m sgadr --db sgadr.db create-user admin --role admin
-```
+Cada reporte de estado vencido se avisa una sola vez por correo (por defecto a `centrodemonitoreochaco@gmail.com`) y queda en el log. Se configura por variables de entorno (la clave no se pasa por línea de comandos):
 
-Este comando crea la base de datos SQLite y registra el primer usuario administrador. Se pedirá una contraseña con mínimo 12 caracteres.
+| Variable | Significado | Por defecto |
+|---|---|---|
+| `SGADR_SMTP_HOST` | Servidor SMTP (sin él, el correo queda desactivado) | |
+| `SGADR_SMTP_PORT` | Puerto | 587 (starttls), 465 (ssl), 25 (none) |
+| `SGADR_SMTP_SECURITY` | `starttls`, `ssl` o `none` | `starttls` |
+| `SGADR_SMTP_USER` / `SGADR_SMTP_PASSWORD` | Credenciales (juntas) | |
+| `SGADR_SMTP_FROM` | Remitente | el usuario SMTP |
+| `SGADR_SMTP_TO` | Destinatarios separados por coma | `centrodemonitoreochaco@gmail.com` |
 
-## Inicio del servicio
+Ejemplo con Gmail (requiere verificación en dos pasos en la cuenta emisora y una "contraseña de aplicación"): `SGADR_SMTP_HOST=smtp.gmail.com SGADR_SMTP_USER=cuenta@gmail.com SGADR_SMTP_PASSWORD=<contraseña de aplicación>`.
 
-```bash
-python -m sgadr --db sgadr.db serve --host 0.0.0.0 --port 8443
-```
+Probar la configuración: `python -m sgadr test-mail`. Si el envío falla, el aviso se reintenta en cada ciclo (60 s) mientras el servicio siga activo; un reinicio descarta los pendientes. El correo no incluye datos de contacto del municipio.
 
-La aplicación queda disponible en:
+## Documentación para desarrollo
 
-```text
-http://localhost:8443
-```
-
-También puede ejecutarse con TLS:
-
-```bash
-python -m sgadr --db sgadr.db serve --host 0.0.0.0 --port 8443 --cert cert.pem --key key.pem
-```
-
-## Credenciales iniciales
-
-Tras la creación del primer usuario administrador, se puede iniciar sesión con:
-
-- Usuario: admin
-- Contraseña: la ingresada durante la creación del usuario
+Ver la carpeta [docs](docs/README.md): arquitectura, reglas de dominio, API, seguridad y guía de desarrollo.
 
 ## Pruebas
 
-El proyecto usa unittest como framework de pruebas.
-
-```bash
-python -m unittest discover -s tests -t .
-```
-
-Se recomienda ejecutar esta validación antes de entregar cambios funcionales.
-
-## Configuración del correo de avisos
-
-Cuando existen reportes vencidos, el sistema puede enviar avisos por correo. La configuración se realiza con variables de entorno.
-
-| Variable | Descripción | Valor sugerido |
-|---|---|---|
-| `SGADR_SMTP_HOST` | Servidor SMTP | `smtp.gmail.com` |
-| `SGADR_SMTP_PORT` | Puerto del servidor | `587`, `465` o `25` |
-| `SGADR_SMTP_SECURITY` | Seguridad SMTP | `starttls`, `ssl` o `none` |
-| `SGADR_SMTP_USER` | Usuario SMTP | cuenta emisora |
-| `SGADR_SMTP_PASSWORD` | Contraseña de aplicación o clave SMTP | secreto |
-| `SGADR_SMTP_FROM` | Remitente del correo | usuario SMTP |
-| `SGADR_SMTP_TO` | Destinatarios | correo o lista separada por coma |
-
-Ejemplo con Gmail:
-
-```bash
-SGADR_SMTP_HOST=smtp.gmail.com SGADR_SMTP_USER=cuenta@gmail.com SGADR_SMTP_PASSWORD=<contraseña de aplicación>
-```
-
-Prueba rápida de correo:
-
-```bash
-python -m sgadr test-mail
-```
-
-## Auditoría
-
-La aplicación incorpora verificación de integridad de la bitácora encadenada.
-
-```bash
-python -m sgadr --db sgadr.db verify-audit
-```
-
-## Mantenimiento recomendado
-
-- Mantener la base de datos en una ruta persistente y conocida.
-- Ejecutar pruebas antes de consolidar cambios.
-- Revisar logs si el servicio falla al iniciar.
-- No exponer la aplicación sin control de acceso ni TLS si está fuera del entorno local.
-
-## Solución rápida de problemas
-
-### La página no abre
-
-Verificar que el servidor está levantado y que el puerto es correcto:
-
-```bash
-python -m sgadr --db sgadr.db serve --host 0.0.0.0 --port 8443
-```
-
-### La base de datos no existe
-
-```bash
-python -m sgadr --db sgadr.db create-user admin --role admin
-```
-
-### Las pruebas fallan
-
-```bash
-python -m unittest discover -s tests -t .
-```
-
-## Documentación complementaria
-
-- [DEVELOPMENT.md](DEVELOPMENT.md)
-- [DOCUMENTACION_EQUIPO.md](DOCUMENTACION_EQUIPO.md)
-- [MANUAL_DEL_EQUIPO_DE_DESARROLLO.md](MANUAL_DEL_EQUIPO_DE_DESARROLLO.md)
-
-## Resumen
-
-SGADR está preparado para funcionar como sistema de gestión local y operativo, con foco en confiabilidad, auditoría y simplicidad de implementación. La documentación técnica complementaria del repositorio contiene detalles adicionales para desarrollo y mantenimiento del equipo.
-
+`python -m unittest discover -s tests -t .`

@@ -172,7 +172,7 @@ class DemandService:
         return self._store.verify_audit_chain()
 
     def audit_recent(self, limit: int) -> list[dict[str, Any]]:
-        return self._store.recent_audit(limit)  # type: ignore[return-value]
+        return self._store.recent_audit(limit)
 
     # ---------- internos ----------
 

@@ -10,6 +10,7 @@ import threading
 import unittest
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 from sgadr.domain import (
     Actor, AlertLevel, AlertSource, AlertState, ConcurrencyConflict, DuplicateError,
@@ -40,7 +41,7 @@ def muni(municipality: str = "Barranqueras", level: AlertLevel = AlertLevel.NARA
 
 
 class AlertRulesTests(ApiTestCase):
-    def due(self, view: dict) -> datetime:
+    def due(self, view: dict[str, Any]) -> datetime:
         return datetime.fromisoformat(view["next_report_due_at"])
 
     def test_apa_alert_is_active_immediately_with_level_interval(self) -> None:
@@ -272,7 +273,7 @@ class ReminderWorkerTests(ApiTestCase):
         self.clock.advance(timedelta(hours=13))
         calls: list[str] = []
 
-        def flaky(alert: dict) -> None:
+        def flaky(alert: dict[str, Any]) -> None:
             calls.append(alert["code"])
             if len(calls) == 1:
                 raise RuntimeError("canal caído")
@@ -306,7 +307,7 @@ class ReminderWorkerTests(ApiTestCase):
 
 
 class AlertApiTests(ApiTestCase):
-    def post(self, path: str, body: dict, token: str) -> tuple[int, dict]:
+    def post(self, path: str, body: dict[str, Any], token: str) -> tuple[int, dict[str, Any]]:
         status, _, data = self.call("POST", path, body, token)
         return status, data
 
